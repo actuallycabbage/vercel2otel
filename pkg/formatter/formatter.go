@@ -1,25 +1,13 @@
-package main
+package formatter
 
 import (
-	"context"
-	"fmt"
+	"strings"
 	"time"
 	"vercel2otel/pkg/vercel"
 
-	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/log"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 )
-
-func ConnectOTLP(ctx context.Context) (*otlploghttp.Exporter, error) {
-	exporter, err := otlploghttp.New(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("could not start otlp log exporter: %w", err)
-	}
-
-	return exporter, nil
-
-}
 
 func VercelSeverityToOtel(in vercel.LogLevel) log.Severity {
 	switch in {
@@ -38,12 +26,9 @@ func TransformLogItems(logItems []vercel.LogItem) []sdklog.Record {
 	for _, logItem := range logItems {
 		record := sdklog.Record{}
 
-		record.SetTimestamp(time.Unix(0, logItem.Timestamp*int64(time.Millisecond)))
-		record.SetObservedTimestamp(time.Now())
+		record.SetTimestamp(time.UnixMilli(logItem.TimestampMs))
 		record.SetSeverity(VercelSeverityToOtel(logItem.Level))
 		record.SetBody(log.StringValue(logItem.Message))
-
-		// attributes
 		record.AddAttributes(
 			log.String("ID", logItem.ID),
 			log.String("Message", logItem.Message),
@@ -60,12 +45,12 @@ func TransformLogItems(logItems []vercel.LogItem) []sdklog.Record {
 			log.String("Path", logItem.Path),
 			log.String("ExecutionRegion", logItem.ExecutionRegion),
 			log.String("Level", string(logItem.Level)),
-			log.Int64("ProxyTimestamp", logItem.Proxy.Timestamp),
+			log.Int64("ProxyTimestampMs", logItem.Proxy.TimestampMs),
 			log.String("ProxyMethod", logItem.Proxy.Method),
 			log.String("ProxyScheme", logItem.Proxy.Scheme),
 			log.String("ProxyHost", logItem.Proxy.Host),
 			log.String("ProxyPath", logItem.Proxy.Path),
-			log.String("ProxyUserAgent", logItem.Proxy.UserAgent),
+			log.String("ProxyUserAgent", strings.Join(logItem.Proxy.UserAgent, ",")),
 			log.String("ProxyReferer", logItem.Proxy.Referer),
 			log.Int("ProxyStatusCode", logItem.Proxy.StatusCode),
 			log.String("ProxyClientIP", logItem.Proxy.ClientIP),

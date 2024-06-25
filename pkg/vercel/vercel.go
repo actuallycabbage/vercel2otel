@@ -29,8 +29,7 @@ type LogItem struct {
 	ID      string `json:"id"`
 	Message string `json:"message"`
 
-	// TODO: this might actually be an int
-	Timestamp    int64     `json:"timestamp"`
+	TimestampMs  int64     `json:"timestamp"`
 	Type         string    `json:"type,omitempty"`
 	Source       LogSource `json:"source"`
 	ProjectID    string    `json:"projectId"`
@@ -47,14 +46,13 @@ type LogItem struct {
 	ExecutionRegion string   `json:"executionRegion,omitempty"`
 	Level           LogLevel `json:"level,omitempty"`
 	Proxy           struct {
-		// again, could be an int.
-		Timestamp int64  `json:"timestamp"`
-		Method    string `json:"method"`
-		Scheme    string `json:"scheme"`
-		Host      string `json:"host"`
-		Path      string `json:"path"`
-		UserAgent string `json:"userAgent"`
-		Referer   string `json:"referer"`
+		TimestampMs int64    `json:"timestamp"`
+		Method      string   `json:"method"`
+		Scheme      string   `json:"scheme"`
+		Host        string   `json:"host"`
+		Path        string   `json:"path"`
+		UserAgent   []string `json:"userAgent"`
+		Referer     string   `json:"referer"`
 		// again, could be an int
 		StatusCode  int    `json:"statusCode"`
 		ClientIP    string `json:"clientIp"`

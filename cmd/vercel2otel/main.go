@@ -1,22 +1,14 @@
 package main
 
 import (
-	"context"
 	"net/http"
+	handler "vercel2otel/api"
 )
 
 func main() {
-	ctx := context.Background()
-
-	exporter, err := ConnectOTLP(ctx)
-	if err != nil {
-		panic(err)
-	}
-
-	handler := http.NewServeMux()
-	handler.HandleFunc("/", NewHandler(exporter))
-
-	err = http.ListenAndServe(":8080", handler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handler.Handler)
+	err := http.ListenAndServe(":8080", mux)
 	if err != nil {
 		panic("could not start server")
 	}
