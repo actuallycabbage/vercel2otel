@@ -1,41 +1,20 @@
 package handler
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
-	"strings"
-	"vercel2otel/pkg/formatter"
 	"vercel2otel/pkg/vercel"
+	"vercel2otel/pkg/vercel2otel"
 
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 )
 
+// Handler is the Vercel entrypoint for this package.
 func Handler(w http.ResponseWriter, r *http.Request) {
-
-	// check auth header
 	auth := os.Getenv("HTTP_BASIC_SECRET")
-	if auth != "" {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			w.WriteHeader(400)
-			return
-		}
-		userAuth, found := strings.CutPrefix(authHeader, "Basic ")
-		if !found {
-			w.WriteHeader(400)
-			return
-		}
-
-		if !strings.EqualFold(auth, userAuth) {
-			if !found {
-				w.WriteHeader(401)
-				return
-			}
-		}
-	}
+	checksumSecret := os.Getenv("VERCEL_SECRET")
+	format := os.Getenv("VERCEL_LINE_FORMAT")
 
 	exporter, err := otlploghttp.New(r.Context())
 	if err != nil {
@@ -43,30 +22,17 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
 		return
 	}
+
 	defer exporter.Shutdown(r.Context())
-	defer r.Body.Close()
 
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "could not copy body: %s", err.Error())
-		w.WriteHeader(500)
-		return
+	handlerConfig := vercel2otel.Vercel2OtelHandlerConfig{
+		Exporter:       exporter,
+		Format:         vercel.ParserFormat(format),
+		BasicAuth:      auth,
+		ChecksumSecret: checksumSecret,
 	}
 
-	logs, err := vercel.ParseJSON(bytes.NewReader(b))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "could not parse body: %s\n", err.Error())
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		return
-	}
+	handlerConfig.HandleRequest(w, r)
 
-	err = exporter.Export(r.Context(), formatter.TransformLogItems(logs))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "could not parse body: %s\n", err.Error())
-		w.WriteHeader(500)
-		return
-	}
-
-	w.WriteHeader(200)
-
+	exporter.ForceFlush(r.Context())
 }

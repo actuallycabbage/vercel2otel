@@ -62,8 +62,24 @@ type LogItem struct {
 	} `json:"proxy,omitempty"`
 }
 
-type LogParser interface {
-	Read(io.Reader) ([]LogItem, error)
+type ParserFormat string
+
+const (
+	JSONParserFormat   ParserFormat = "JSON"
+	NDJSONParserFormat ParserFormat = "NDJSON"
+)
+
+type LogParser = func(io.Reader) ([]LogItem, error)
+
+func GetParser(format ParserFormat) (LogParser, error) {
+	switch format {
+	case JSONParserFormat:
+		return ParseJSON, nil
+	case NDJSONParserFormat:
+		return ParseNDJSON, nil
+	default:
+		return nil, fmt.Errorf("unexpected parser format: %s", format)
+	}
 }
 
 func ParseJSON(reader io.Reader) (logs []LogItem, err error) {

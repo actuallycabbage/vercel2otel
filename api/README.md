@@ -1,4 +1,3 @@
 # api/
-Vercel has a somewhat unusual way of running Go applications. All routes need 
-to be sitting in the root api/ directory with a single `Handler` function 
-in there.
+Vercel requires that all routes must to be sitting in the root api/ directory
+each with a single `Handler` function in there.
